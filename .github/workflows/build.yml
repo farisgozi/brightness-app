@@ -24,6 +24,11 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.4'
+        
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -34,9 +39,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
           
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-      
     - name: Setup Android SDK components
       run: |
         echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
@@ -47,47 +49,79 @@ jobs:
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
         $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "cmake;3.22.1" "ndk;25.1.8937393" || true
         
-    - name: Validate Gradle Wrapper
+    - name: Create/Fix Gradle Wrapper
       run: |
-        ./gradlew --version
+        # Check if gradlew exists and is executable
+        if [ ! -f "gradlew" ] || [ ! -x "gradlew" ]; then
+          echo "Creating new Gradle wrapper..."
+          rm -rf gradle/wrapper/
+          rm -f gradlew gradlew.bat
+          
+          # Create gradle wrapper using installed gradle
+          gradle wrapper --gradle-version=8.4 --distribution-type=bin
+        fi
+        
+        # Make sure it's executable
+        chmod +x gradlew
+        
+        # Validate wrapper
+        ./gradlew --version || {
+          echo "Wrapper validation failed, recreating..."
+          rm -rf gradle/wrapper/
+          rm -f gradlew gradlew.bat
+          gradle wrapper --gradle-version=8.4 --distribution-type=bin
+          chmod +x gradlew
+          ./gradlew --version
+        }
         
     - name: Clean project
       run: |
-        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx3072m"
+        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8"
         ./gradlew clean --no-daemon --stacktrace
         
     - name: Build debug APK
       run: |
-        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx3072m"
+        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8"
         ./gradlew assembleDebug --no-daemon --stacktrace --info
       
     - name: Build release APK (if debug succeeds)
       if: success()
       run: |
-        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx3072m"
+        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8"
         ./gradlew assembleRelease --no-daemon --stacktrace --info
       
     - name: List APK outputs (Debug info)
       if: always()
       run: |
-        find . -name "*.apk" -type f || echo "No APK files found"
-        ls -la app/build/outputs/apk/debug/ || echo "Debug APK directory not found"
-        ls -la app/build/outputs/apk/release/ || echo "Release APK directory not found"
+        echo "=== Project Structure ==="
+        find . -name "build.gradle*" -o -name "*.apk" | head -20
+        
+        echo "=== APK Search ==="
+        find . -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+        
+        echo "=== Build Outputs ==="
+        ls -la app/build/outputs/apk/ 2>/dev/null || echo "APK output directory not found"
+        ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "Debug APK directory not found"
+        ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "Release APK directory not found"
       
     - name: Upload Debug APK
       if: success()
       uses: actions/upload-artifact@v4
       with:
         name: brightness-control-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
-        if-no-files-found: error
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          */build/outputs/apk/debug/*.apk
+        if-no-files-found: warn
         
     - name: Upload Release APK
       if: success()
       uses: actions/upload-artifact@v4
       with:
         name: brightness-control-release
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        path: |
+          app/build/outputs/apk/release/*.apk
+          */build/outputs/apk/release/*.apk
         if-no-files-found: warn
         
     - name: Create Release
@@ -128,8 +162,8 @@ jobs:
           
           **Tested on Oppo A5s with Ancient OS ROM GSI**
         files: |
-          app/build/outputs/apk/debug/app-debug.apk
-          app/build/outputs/apk/release/app-release-unsigned.apk
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/release/*.apk
         draft: false
         prerelease: false
       env:
