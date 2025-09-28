@@ -47,24 +47,16 @@ jobs:
     - name: Accept Android SDK licenses and install packages
       run: |
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "cmake;3.22.1" "ndk;25.1.8937393" || true
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
         
-    - name: Create/Fix Gradle Wrapper
+    - name: Validate and Fix Gradle Wrapper
       run: |
-        # Check if gradlew exists and is executable
-        if [ ! -f "gradlew" ] || [ ! -x "gradlew" ]; then
-          echo "Creating new Gradle wrapper..."
-          rm -rf gradle/wrapper/
-          rm -f gradlew gradlew.bat
-          
-          # Create gradle wrapper using installed gradle
-          gradle wrapper --gradle-version=8.4 --distribution-type=bin
+        # Make gradlew executable if it exists
+        if [ -f "gradlew" ]; then
+          chmod +x gradlew
         fi
         
-        # Make sure it's executable
-        chmod +x gradlew
-        
-        # Validate wrapper
+        # Test gradlew or recreate if needed
         ./gradlew --version || {
           echo "Wrapper validation failed, recreating..."
           rm -rf gradle/wrapper/
@@ -75,26 +67,29 @@ jobs:
         }
         
     - name: Clean project
+      env:
+        GRADLE_OPTS: "-Xmx3072m -Dfile.encoding=UTF-8"
       run: |
-        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8"
         ./gradlew clean --no-daemon --stacktrace
         
     - name: Build debug APK
+      env:
+        GRADLE_OPTS: "-Xmx3072m -Dfile.encoding=UTF-8"
       run: |
-        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8"
         ./gradlew assembleDebug --no-daemon --stacktrace --info
       
     - name: Build release APK (if debug succeeds)
       if: success()
+      env:
+        GRADLE_OPTS: "-Xmx3072m -Dfile.encoding=UTF-8"
       run: |
-        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8"
         ./gradlew assembleRelease --no-daemon --stacktrace --info
       
     - name: List APK outputs (Debug info)
       if: always()
       run: |
         echo "=== Project Structure ==="
-        find . -name "build.gradle*" -o -name "*.apk" | head -20
+        find . -name "build.gradle*" -o -name "settings.gradle*" | head -10
         
         echo "=== APK Search ==="
         find . -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
