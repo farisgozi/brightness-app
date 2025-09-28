@@ -1,11 +1,11 @@
-name: Build Brightness Control APK
+name: Build APK - Simple
 
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,7 +23,11 @@ jobs:
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-      
+      with:
+        api-level: 30
+        target: default
+        arch: x86_64
+        
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -37,32 +41,22 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
-    - name: Setup Android SDK components
-      run: |
-        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        
-    - name: Accept Android SDK licenses and install packages
-      run: |
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" || true
-        
     - name: Build debug APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: ./gradlew assembleDebug --no-daemon --stacktrace
       
-    - name: Build release APK
-      run: ./gradlew assembleRelease --stacktrace
+    - name: Build release APK  
+      run: ./gradlew assembleRelease --no-daemon --stacktrace
       
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: brightness-control-debug
+        name: brightness-control-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
         
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: brightness-control-release
+        name: brightness-control-release-apk
         path: app/build/outputs/apk/release/app-release-unsigned.apk
         
     - name: Create Release
@@ -77,31 +71,37 @@ jobs:
           📱 **For Oppo A5s with Ancient OS (Android 10)**
           
           ### 📦 Downloads:
-          - **Debug APK**: For testing
-          - **Release APK**: For production use
+          - **app-debug.apk**: For testing and development
+          - **app-release-unsigned.apk**: For production use
           
           ### ✅ Requirements:
           - Android 5.0+ (API 21+)
           - **ROOT ACCESS REQUIRED**
-          - Overlay permission
-          - Write settings permission
+          - Enable "Unknown Sources" for APK installation
+          - Grant SuperUser permission when prompted
+          - Enable overlay permission (Display over other apps)
+          - Enable write settings permission
           
-          ### 🚀 Installation:
-          1. Download APK
-          2. Enable "Unknown Sources" 
-          3. Install APK
-          4. Grant SuperUser permission
-          5. Enable overlay & write settings permissions
-          6. Start brightness service
+          ### 🚀 Installation Steps:
+          1. Download APK to your device
+          2. Enable "Install unknown apps" for your file manager
+          3. Tap the APK to install
+          4. Open app and grant SuperUser permission
+          5. Enable required permissions in Settings
+          6. Start the brightness service
           
           ### 🎯 Features:
           - Direct access to `/sys/class/leds/lcd-backlight/brightness`
-          - Max brightness: 2047 (bypassing ROM limitations)
-          - Floating widget with drag & drop
-          - Auto-startup on boot
-          - Background service
+          - Max brightness: 2047 (bypassing ROM GSI limitations)
+          - Floating widget with drag & drop functionality
+          - Auto-startup on device boot
+          - Persistent background service
+          - Manual brightness control interface
           
-          **Tested on Oppo A5s with Ancient OS ROM GSI**
+          **Tested specifically for Oppo A5s with Ancient OS ROM GSI**
+          
+          ### 🆘 Need Help?
+          Check the troubleshooting guide in the repository for common issues.
         files: |
           app/build/outputs/apk/debug/app-debug.apk
           app/build/outputs/apk/release/app-release-unsigned.apk
