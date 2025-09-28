@@ -47,7 +47,7 @@ jobs:
     - name: Accept Android SDK licenses and install packages
       run: |
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" || true
         
     - name: Validate and Fix Gradle Wrapper
       run: |
