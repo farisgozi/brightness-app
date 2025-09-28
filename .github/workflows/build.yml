@@ -23,11 +23,6 @@ jobs:
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-      
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: '8.4'
         
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -49,41 +44,14 @@ jobs:
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
         $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" || true
         
-    - name: Validate and Fix Gradle Wrapper
-      run: |
-        # Make gradlew executable if it exists
-        if [ -f "gradlew" ]; then
-          chmod +x gradlew
-        fi
-        
-        # Test gradlew or recreate if needed
-        ./gradlew --version || {
-          echo "Wrapper validation failed, recreating..."
-          rm -rf gradle/wrapper/
-          rm -f gradlew gradlew.bat
-          gradle wrapper --gradle-version=8.4 --distribution-type=bin
-          chmod +x gradlew
-          ./gradlew --version
-        }
-        
-    - name: Clean project
-      env:
-        GRADLE_OPTS: "-Xmx3072m -Dfile.encoding=UTF-8"
-      run: |
-        ./gradlew clean --no-daemon --stacktrace
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
         
     - name: Build debug APK
-      env:
-        GRADLE_OPTS: "-Xmx3072m -Dfile.encoding=UTF-8"
-      run: |
-        ./gradlew assembleDebug --no-daemon --stacktrace --info
+      run: ./gradlew assembleDebug --no-daemon --stacktrace
       
-    - name: Build release APK (if debug succeeds)
-      if: success()
-      env:
-        GRADLE_OPTS: "-Xmx3072m -Dfile.encoding=UTF-8"
-      run: |
-        ./gradlew assembleRelease --no-daemon --stacktrace --info
+    - name: Build release APK
+      run: ./gradlew assembleRelease --no-daemon --stacktrace
       
     - name: List APK outputs (Debug info)
       if: always()
