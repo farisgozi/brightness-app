@@ -45,33 +45,54 @@ jobs:
     - name: Accept Android SDK licenses and install packages
       run: |
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" || true
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "cmake;3.22.1" "ndk;25.1.8937393" || true
+        
+    - name: Validate Gradle Wrapper
+      run: |
+        ./gradlew --version
+        
+    - name: Clean project
+      run: |
+        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx3072m"
+        ./gradlew clean --no-daemon --stacktrace
         
     - name: Build debug APK
       run: |
-        export GRADLE_OPTS="-Xmx2048m -Dfile.encoding=UTF-8"
-        ./gradlew assembleDebug --no-daemon --stacktrace
+        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx3072m"
+        ./gradlew assembleDebug --no-daemon --stacktrace --info
       
-    - name: Build release APK
+    - name: Build release APK (if debug succeeds)
+      if: success()
       run: |
-        export GRADLE_OPTS="-Xmx2048m -Dfile.encoding=UTF-8"
-        ./gradlew assembleRelease --no-daemon --stacktrace
+        export GRADLE_OPTS="-Xmx3072m -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx3072m"
+        ./gradlew assembleRelease --no-daemon --stacktrace --info
+      
+    - name: List APK outputs (Debug info)
+      if: always()
+      run: |
+        find . -name "*.apk" -type f || echo "No APK files found"
+        ls -la app/build/outputs/apk/debug/ || echo "Debug APK directory not found"
+        ls -la app/build/outputs/apk/release/ || echo "Release APK directory not found"
       
     - name: Upload Debug APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: brightness-control-debug
         path: app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
         
     - name: Upload Release APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: brightness-control-release
         path: app/build/outputs/apk/release/app-release-unsigned.apk
+        if-no-files-found: warn
         
     - name: Create Release
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: softprops/action-gh-release@v1
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && success()
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.${{ github.run_number }}
         name: Brightness Control v1.0.${{ github.run_number }}
