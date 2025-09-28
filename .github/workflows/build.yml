@@ -1,0 +1,109 @@
+name: Build Brightness Control APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Accept Android SDK licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      
+    - name: Install required SDK packages
+      run: |
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-30"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3"
+        
+    - name: Build debug APK
+      run: ./gradlew assembleDebug --stacktrace
+      
+    - name: Build release APK
+      run: ./gradlew assembleRelease --stacktrace
+      
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: brightness-control-debug
+        path: app/build/outputs/apk/debug/app-debug.apk
+        
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: brightness-control-release
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: Brightness Control v1.0.${{ github.run_number }}
+        body: |
+          🎉 **Brightness Control APK Ready!**
+          
+          📱 **For Oppo A5s with Ancient OS (Android 10)**
+          
+          ### 📦 Downloads:
+          - **Debug APK**: For testing
+          - **Release APK**: For production use
+          
+          ### ✅ Requirements:
+          - Android 5.0+ (API 21+)
+          - **ROOT ACCESS REQUIRED**
+          - Overlay permission
+          - Write settings permission
+          
+          ### 🚀 Installation:
+          1. Download APK
+          2. Enable "Unknown Sources" 
+          3. Install APK
+          4. Grant SuperUser permission
+          5. Enable overlay & write settings permissions
+          6. Start brightness service
+          
+          ### 🎯 Features:
+          - Direct access to `/sys/class/leds/lcd-backlight/brightness`
+          - Max brightness: 2047 (bypassing ROM limitations)
+          - Floating widget with drag & drop
+          - Auto-startup on boot
+          - Background service
+          
+          **Tested on Oppo A5s with Ancient OS ROM GSI**
+        files: |
+          app/build/outputs/apk/debug/app-debug.apk
+          app/build/outputs/apk/release/app-release-unsigned.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

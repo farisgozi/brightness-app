@@ -1,0 +1,28 @@
+FROM gradle:7.4.2-jdk11
+
+USER root
+
+# Install Android SDK
+ENV ANDROID_HOME /opt/android-sdk
+ENV PATH ${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
+
+RUN apt-get update && apt-get install -y wget unzip && \
+    mkdir -p ${ANDROID_HOME}/cmdline-tools && \
+    cd /tmp && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip && \
+    unzip commandlinetools-linux-8512546_latest.zip && \
+    mv cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest && \
+    rm commandlinetools-linux-8512546_latest.zip
+
+# Install required SDK components
+RUN yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager \
+    "platforms;android-30" \
+    "build-tools;30.0.3" \
+    "platform-tools"
+
+WORKDIR /project
+COPY . .
+
+# Build
+RUN chmod +x gradlew
+RUN ./gradlew clean assembleDebug --no-daemon --stacktrace

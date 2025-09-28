@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Collapsed View (Small floating icon) -->
+    <LinearLayout
+        android:id="@+id/collapsedView"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/floating_background"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <ImageView
+            android:id="@+id/imgCollapsed"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_brightness"
+            android:tint="#ffffff" />
+
+    </LinearLayout>
+
+    <!-- Expanded View (Brightness slider) -->
+    <LinearLayout
+        android:id="@+id/expandedView"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/floating_background_expanded"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Brightness"
+            android:textColor="#ffffff"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_brightness_low"
+                android:tint="#ffffff"
+                android:layout_marginEnd="8dp" />
+
+            <SeekBar
+                android:id="@+id/seekBarFloating"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="2047"
+                android:progress="1000"
+                android:progressTint="#ffffff"
+                android:thumbTint="#ffffff" />
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_brightness_high"
+                android:tint="#ffffff"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvFloatingBrightness"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1000"
+            android:textColor="#ffffff"
+            android:textSize="14sp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+</LinearLayout>
