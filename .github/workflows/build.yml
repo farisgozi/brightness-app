@@ -48,10 +48,14 @@ jobs:
         $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" || true
         
     - name: Build debug APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: |
+        export GRADLE_OPTS="-Xmx2048m -Dfile.encoding=UTF-8"
+        ./gradlew assembleDebug --no-daemon --stacktrace
       
     - name: Build release APK
-      run: ./gradlew assembleRelease --stacktrace
+      run: |
+        export GRADLE_OPTS="-Xmx2048m -Dfile.encoding=UTF-8"
+        ./gradlew assembleRelease --no-daemon --stacktrace
       
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
